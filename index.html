@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secret Hub // Midnight Edition</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at 10% 10%, #173d45 0, transparent 30%), radial-gradient(circle at 90% 80%, #302052 0, transparent 35%), linear-gradient(135deg, #05070d, #0b1220 55%, #090b14);
+      min-height: 100vh;
+      color: #eee;
+      overflow-x: hidden;
+    }
+    body:before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .07;
+      background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(to bottom, #000, transparent);
+    }
+    #calc-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .calc-container {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+      width: 340px;
+      max-width: 95vw;
+    }
+    .calc-display {
+      background: #0d1117;
+      color: #00ff9d;
+      font-size: 2.4rem;
+      font-family: 'Courier New', monospace;
+      text-align: right;
+      padding: 18px 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      min-height: 70px;
+      word-break: break-all;
+      border: 1px solid #333;
+    }
+    .calc-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .calc-btn {
+      background: rgba(255,255,255,0.12);
+      border: none;
+      color: #fff;
+      font-size: 1.4rem;
+      padding: 18px 0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-weight: 600;
+    }
+    .calc-btn:hover { background: rgba(255,255,255,0.22); transform: scale(1.03); }
+    .calc-btn:active { transform: scale(0.97); }
+    .calc-btn.op { background: #e94560; }
+    .calc-btn.op:hover { background: #ff6b81; }
+    .calc-btn.eq { background: #00b894; grid-column: span 2; }
+    .calc-btn.eq:hover { background: #00d2a0; }
+    .calc-btn.clear { background: #6c5ce7; }
+    .calc-btn.clear:hover { background: #a29bfe; }
+    .calc-hint {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 0.75rem;
+      opacity: 0.4;
+    }
+    #secret-view { display: none; min-height: 100vh; }
+    .hub-header {
+      background: rgba(0,0,0,0.6);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 255, 157, 0.2);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+      flex-wrap: wrap;
+      gap: 10px;
+      box-shadow: 0 8px 40px #0008;
+    }
+    .hub-logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #00ff9d, #00bfff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+      text-shadow: 0 0 22px #00ff9d55;
+    }
+    .hub-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+    .hub-nav button {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .hub-nav button:hover, .hub-nav button.active {
+      background: #00b894;
+      border-color: #00b894;
+    }
+    .hub-content { padding: 24px; max-width: 1500px; margin: 0 auto; }
+    .vibe-hero { display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; margin-bottom: 22px; }
+    .vibe-panel {
+      padding: 24px;
+      border: 1px solid #ffffff18;
+      border-radius: 22px;
+      background: linear-gradient(145deg, #ffffff12, #ffffff04);
+      box-shadow: 0 18px 60px #0004;
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+      position: relative;
+    }
+    .vibe-panel:after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      right: -120px;
+      top: -130px;
+      border-radius: 50%;
+      background: #00ff9d18;
+      filter: blur(20px);
+    }
+    .vibe-kicker { font-size: 0.7rem; letter-spacing: 3px; color: #00ff9d; font-weight: 800; }
+    .vibe-title { font-size: clamp(2rem, 5vw, 4rem); font-weight: 900; line-height: 1; margin: 10px 0 14px; }
+    .vibe-copy { opacity: 0.65; line-height: 1.6; }
+    .vibe-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    .vibe-action {
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid #ffffff18;
+      background: #ffffff0d;
+      color: #fff;
+      cursor: pointer;
+    }
+    .vibe-action:hover { background: #00b894; border-color: #00b894; transform: translateY(-2px); }
+    .vibe-clock { font: 2rem 'Courier New', monospace; text-shadow: 0 0 18px #00ff9d55; }
+    .vibe-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 18px; }
+    .vibe-stat { background: #0004; border: 1px solid #ffffff0c; border-radius: 12px; padding: 12px; text-align: center; }
+    .vibe-stat b { display: block; color: #00ff9d; font-size: 1.25rem; }
+    .vibe-stat span { font-size: 0.65rem; opacity: 0.5; }
+    .library-tools { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 20px; }
+    .library-tools input {
+      flex: 1;
+      min-width: 220px;
+      padding: 13px 16px;
+      border-radius: 12px;
+      border: 1px solid #ffffff18;
+      background: #05080fcc;
+      color: #fff;
+      outline: none;
+    }
+    .library-tools button {
+      padding: 12px 15px;
+      border-radius: 12px;
+      border: 1px solid #ffffff18;
+      background: #ffffff0b;
+      color: #fff;
+      cursor: pointer;
+    }
+    .library-tools button:hover { border-color: #00ff9d; color: #00ff9d; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .section h2 { font-size: 1.8rem; margin-bottom: 8px; color: #00ff9d; }
+    .section p.desc { opacity: 0.7; margin-bottom: 24px; }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.25s;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 12px 35px #0003;
+      position: relative;
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 30px rgba(0,255,157,0.2);
+      border-color: #00ff9d;
+    }
+    .card-badge {
+      position: absolute;
+      top: 9px;
+      right: 9px;
+      z-index: 2;
+      font-size: 0.6rem;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: #000b;
+      border: 1px solid #ffffff1a;
+    }
+    .card-img {
+      height: 140px;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .card-img img {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      display: block;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      background: #0a0a0a;
+      padding: 6px;
+    }
+    .card-body { padding: 14px; }
+    .card-title { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+    .card-sub { font-size: 0.8rem; opacity: 0.6; }
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 1000;
+      flex-direction: column;
+    }
+    .modal.open { display: flex; }
+    .modal-bar {
+      background: #111;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #333;
+    }
+    .modal-bar button {
+      background: #e94560;
+      border: none;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .modal-bar button:hover { background: #ff6b81; }
+    .modal-title { flex: 1; font-weight: 600; font-size: 1rem; }
+    .modal iframe {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #000;
+    }
+    .browser-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .browser-bar input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid #444;
+      background: #0d1117;
+      color: #fff;
+      font-size: 1rem;
+    }
+    .browser-bar button {
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      background: #00b894;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .browser-frame {
+      width: 100%;
+      height: 70vh;
+      border: 1px solid #333;
+      border-radius: 12px;
+      background: #111;
+    }
+    .ai-chat {
+      background: rgba(0,0,0,0.4);
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      height: 65vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .ai-messages {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      padding-right: 8px;
+    }
+    .ai-msg {
+      margin-bottom: 12px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      max-width: 85%;
+      line-height: 1.5;
+    }
+    .ai-msg.user { background: #00b894; margin-left: auto; color: #000; }
+    .ai-msg.bot { background: rgba(255,255,255,0.1); }
+    .ai-input-row { display: flex; gap: 8px; }
+    .ai-input-row input {
+      flex: 1;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #444;
+      background: #0d1117;
+      color: #fff;
+      font-size: 1rem;
+    }
+    .ai-input-row button {
+      padding: 14px 24px;
+      border-radius: 10px;
+      border: none;
+      background: #6c5ce7;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .music-card .card-img { background: linear-gradient(135deg, #1db954, #191414); }
+    .movie-card .card-img { background: linear-gradient(135deg, #e94560, #6c5ce7); }
+    .back-calc {
+      background: transparent !important;
+      border: 1px solid #666 !important;
+      color: #aaa !important;
+    }
+    .back-calc:hover {
+      background: rgba(255,255,255,0.1) !important;
+      color: #fff !important;
+    }
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #080c14ee;
+      border: 1px solid #00ff9d55;
+      border-radius: 12px;
+      padding: 12px 16px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: 0.25s;
+      z-index: 3000;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 800px) {
+      .vibe-hero { grid-template-columns: 1fr; }
+      .vibe-title { font-size: 2.4rem; }
+    }
+    @media (max-width: 600px) {
+      .hub-nav { gap: 4px; }
+      .hub-nav button { padding: 6px 10px; font-size: 0.8rem; }
+      .card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div id="calc-view">
+    <div class="calc-container">
+      <div class="calc-display" id="display">0</div>
+      <div class="calc-buttons">
+        <button class="calc-btn clear" onclick="clearDisplay()">C</button>
+        <button class="calc-btn op" onclick="appendOp('/')">÷</button>
+        <button class="calc-btn op" onclick="appendOp('*')">×</button>
+        <button class="calc-btn op" onclick="backspace()">⌫</button>
+        <button class="calc-btn" onclick="appendNum('7')">7</button>
+        <button class="calc-btn" onclick="appendNum('8')">8</button>
+        <button class="calc-btn" onclick="appendNum('9')">9</button>
+        <button class="calc-btn op" onclick="appendOp('-')">−</button>
+        <button class="calc-btn" onclick="appendNum('4')">4</button>
+        <button class="calc-btn" onclick="appendNum('5')">5</button>
+        <button class="calc-btn" onclick="appendNum('6')">6</button>
+        <button class="calc-btn op" onclick="appendOp('+')">+</button>
+        <button class="calc-btn" onclick="appendNum('1')">1</button>
+        <button class="calc-btn" onclick="appendNum('2')">2</button>
+        <button class="calc-btn" onclick="appendNum('3')">3</button>
+        <button class="calc-btn eq" onclick="calculate()">=</button>
+        <button class="calc-btn" onclick="appendNum('0')" style="grid-column: span 2;">0</button>
+        <button class="calc-btn" onclick="appendNum('.')">.</button>
+      </div>
+      <div class="calc-hint">Standard calculator</div>
+    </div>
+  </div>
+
+  <div id="secret-view">
+    <div class="hub-header">
+      <div class="hub-logo">🎮 SECRET HUB</div>
+      <div class="hub-nav">
+        <button class="nav-btn active" data-section="games">Games</button>
+        <button class="nav-btn" data-section="browser">Private Browser</button>
+        <button class="nav-btn" data-section="ai">AI Chat</button>
+        <button class="nav-btn" data-section="music">Music</button>
+        <button class="nav-btn" data-section="movies">PJS MOVIES</button>
+        <button class="back-calc" onclick="lockSecret()">🔒 Lock</button>
+      </div>
+    </div>
+    <div class="hub-content">
+      <div class="vibe-hero">
+        <div class="vibe-panel">
+          <div class="vibe-kicker">SECRET NETWORK // MIDNIGHT MODE</div>
+          <div class="vibe-title">Your digital hideout.</div>
+          <div class="vibe-copy">Games, music, movies, tools and experiments in one neon command center. Search the library, launch a player, and explore.</div>
+          <div class="vibe-actions">
+            <button class="vibe-action" onclick="switchSection('games')">🎮 Launch Games</button>
+            <button class="vibe-action" onclick="switchSection('music')">🎵 Music Deck</button>
+            <button class="vibe-action" onclick="switchSection('ai')">🤖 AI Chat</button>
+          </div>
+        </div>
+        <div class="vibe-panel">
+          <div class="vibe-kicker">SYSTEM CLOCK</div>
+          <div class="vibe-clock" id="vibe-clock">00:00:00</div>
+          <p class="desc">● All systems online</p>
+          <div class="vibe-stats">
+            <div class="vibe-stat"><b id="vibe-game-count">0</b><span>GAMES</span></div>
+            <div class="vibe-stat"><b id="vibe-music-count">0</b><span>MUSIC</span></div>
+            <div class="vibe-stat"><b id="vibe-movie-count">0</b><span>MOVIES</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="library-tools">
+        <input id="library-search" placeholder="Search the entire hub...">
+        <button onclick="randomGame()">🎲 Random Game</button>
+        <button onclick="showToast('Press / to search the library')">⌕ Search Tips</button>
+      </div>
+      <div class="section active" id="sec-games">
+        <h2>🎮 Game Library</h2>
+        <p class="desc">Click any game to play in an iframe.</p>
+        <div class="card-grid" id="games-grid"></div>
+      </div>
+      <div class="section" id="sec-browser">
+        <h2>🔒 Private Browser</h2>
+        <p class="desc">Type any URL and browse in an isolated iframe.</p>
+        <div class="browser-bar">
+          <input type="text" id="browser-url" placeholder="https://example.com" value="https://duckduckgo.com">
+          <button onclick="loadBrowser()">Go</button>
+        </div>
+        <iframe class="browser-frame" id="browser-frame" src="https://duckduckgo.com" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      </div>
+      <div class="section" id="sec-ai">
+        <h2>🤖 AI Assistant</h2>
+        <p class="desc">Lightweight local AI helper.</p>
+        <div class="ai-chat">
+          <div class="ai-messages" id="ai-messages">
+            <div class="ai-msg bot">Hey! I'm your secret hub AI. Ask me about games, movies, music, or just chat!</div>
+          </div>
+          <div class="ai-input-row">
+            <input type="text" id="ai-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendAI()">
+            <button onclick="sendAI()">Send</button>
+          </div>
+        </div>
+      </div>
+      <div class="section" id="sec-music">
+        <h2>🎵 Music Player</h2>
+        <p class="desc">Click an album or playlist to open the Spotify embed player.</p>
+        <div class="card-grid" id="music-grid"></div>
+      </div>
+      <div class="section" id="sec-movies">
+        <h2>🎬 PJS MOVIES</h2>
+        <p class="desc">Click a title to watch in an iframe player.</p>
+        <div class="card-grid" id="movies-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="play-modal">
+    <div class="modal-bar">
+      <button onclick="closeModal()">✕ Close</button>
+      <div class="modal-title" id="modal-title">Playing...</div>
+      <button onclick="toggleFullscreen()" style="background:#6c5ce7;">⛶ Fullscreen</button>
+    </div>
+    <iframe id="modal-iframe" src="about:blank" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; gamepad; fullscreen" allowfullscreen></iframe>
+  </div>
+
+  <script>
+    let current = '0';
+    let resetNext = false;
+    let sequence = '';
+
+    function updateDisplay() {
+      document.getElementById('display').textContent = current;
+    }
+
+    function appendNum(n) {
+      // Record digit entries separately to trigger unlock code reliable
+      sequence += n;
+      if (sequence.length > 4) sequence = sequence.slice(-4);
+      
+      if (resetNext) {
+        current = n;
+        resetNext = false;
+      } else if (current === '0') {
+        current = n;
+      } else {
+        current += n;
+      }
+      
+      updateDisplay();
+      checkSecret();
+    }
+
+    function appendOp(op) {
+      sequence = '';
+      if (resetNext) resetNext = false;
+      const last = current.slice(-1);
+      if ('+-*/'.includes(last)) current = current.slice(0, -1) + op;
+      else current += op;
+      updateDisplay();
+    }
+
+    function clearDisplay() {
+      current = '0';
+      sequence = '';
+      updateDisplay();
+    }
+
+    function backspace() {
+      if (resetNext) { clearDisplay(); return; }
+      current = current.length > 1 ? current.slice(0, -1) : '0';
+      sequence = sequence.slice(0, -1);
+      updateDisplay();
+    }
+
+    function calculate() {
+      try {
+        let expr = current.replace(/×/g, '*').replace(/÷/g, '/');
+        if (!/^[\d+\-*/.() ]+$/.test(expr)) throw new Error('Invalid');
+        let result = Function('"use strict"; return (' + expr + ')')();
+        current = String(result);
+        resetNext = true;
+        updateDisplay();
+      } catch (e) {
+        current = 'Error';
+        resetNext = true;
+        updateDisplay();
+      }
+    }
+
+    function checkSecret() {
+      if (sequence === '0000' || current === '0000') {
+        sequence = '';
+        setTimeout(() => {
+          document.getElementById('calc-view').style.display = 'none';
+          document.getElementById('secret-view').style.display = 'block';
+        }, 150);
+      }
+    }
+
+    function lockSecret() {
+      document.getElementById('secret-view').style.display = 'none';
+      document.getElementById('calc-view').style.display = 'flex';
+      clearDisplay();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (document.getElementById('secret-view').style.display === 'block') return;
+      if (e.key >= '0' && e.key <= '9') appendNum(e.key);
+      else if (e.key === '.') appendNum('.');
+      else if (e.key === '+') appendOp('+');
+      else if (e.key === '-') appendOp('-');
+      else if (e.key === '*') appendOp('*');
+      else if (e.key === '/') appendOp('/');
+      else if (e.key === 'Enter' || e.key === '=') calculate();
+      else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') clearDisplay();
+      else if (e.key === 'Backspace') backspace();
+    });
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('sec-' + btn.dataset.section).classList.add('active');
+      });
+    });
+
+    const games = [
+      { title: "Eaglercraft", sub: "Minecraft in browser", emoji: "⛏️", url: "https://eaglercraft.com/play" },
+      { title: "GTA Vice City", sub: "Web Port", emoji: "🌴", url: "https://quenq.com/apps/vice-city-online/" },
+      { title: "GTA III", sub: "Web Port", emoji: "🏙️", url: "https://quenqgta.com/" },
+      { title: "2048", sub: "Number puzzle", emoji: "🔢", url: "https://play2048.co/" },
+      { title: "Cookie Clicker", sub: "Idle classic", emoji: "🍪", url: "https://orteil.dashnet.org/cookieclicker/" },
+      { title: "Minecraft Classic", sub: "Classic edition", emoji: "🧱", url: "https://classic.minecraft.net/" },
+      { title: "Doom", sub: "Classic FPS (DOS)", emoji: "👹", url: "https://dos.zone/doom-dec-1993/" },
+      { title: "Tetris", sub: "Classic puzzle", emoji: "🟦", url: "https://tetris.com/play-tetris" }
+    ];
+
+    const gamesGrid = document.getElementById('games-grid');
+    games.forEach(g => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = '<span class="card-badge">PLAY</span><div class="card-img"><span>' + g.emoji + '</span></div><div class="card-body"><div class="card-title">' + g.title + '</div><div class="card-sub">' + g.sub + '</div></div>';
+      card.onclick = () => openModal(g.title, g.url);
+      gamesGrid.appendChild(card);
+    });
+
+    const musicData = [
+      { title: "Today's Top Hits", artist: "Spotify Playlist", embed: "https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M" },
+      { title: "Chill Hits", artist: "Spotify Playlist", embed: "https://open.spotify.com/embed/playlist/37i9dQZF1DX4WYpdgoIcn6" },
+      { title: "Lo-Fi Beats", artist: "Spotify Playlist", embed: "https://open.spotify.com/embed/playlist/37i9dQZF1DWWQRwui0ExPn" }
+    ];
+
+    const musicGrid = document.getElementById('music-grid');
+    musicData.forEach(m => {
+      const card = document.createElement('div');
+      card.className = 'card music-card';
+      card.innerHTML = '<span class="card-badge">LISTEN</span><div class="card-img">🎵</div><div class="card-body"><div class="card-title">' + m.title + '</div><div class="card-sub">' + m.artist + '</div></div>';
+      card.onclick = () => openModal(m.title, m.embed);
+      musicGrid.appendChild(card);
+    });
+
+    const movies = [
+      { title: "South Park Season 1", sub: "Archive.org", emoji: "🏔️", url: "https://archive.org/embed/sp97_20221202" },
+      { title: "Ace Ventura: Pet Detective", sub: "Archive.org", emoji: "🦜", url: "https://archive.org/embed/ace-ventura-pet-detective_202507" }
+    ];
+
+    const moviesGrid = document.getElementById('movies-grid');
+    movies.forEach(m => {
+      const card = document.createElement('div');
+      card.className = 'card movie-card';
+      card.innerHTML = '<span class="card-badge">WATCH</span><div class="card-img">' + m.emoji + '</div><div class="card-body"><div class="card-title">' + m.title + '</div><div class="card-sub">' + m.sub + '</div></div>';
+      card.onclick = () => openModal(m.title, m.url);
+      moviesGrid.appendChild(card);
+    });
+
+    function openModal(title, url) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-iframe').src = url;
+      document.getElementById('play-modal').classList.add('open');
+    }
+    function closeModal() {
+      document.getElementById('play-modal').classList.remove('open');
+      document.getElementById('modal-iframe').src = 'about:blank';
+    }
+    function toggleFullscreen() {
+      const iframe = document.getElementById('modal-iframe');
+      if (iframe.requestFullscreen) iframe.requestFullscreen();
+      else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen();
+    }
+    function loadBrowser() {
+      let url = document.getElementById('browser-url').value.trim();
+      if (!url.startsWith('http')) url = 'https://' + url;
+      document.getElementById('browser-frame').src = url;
+    }
+
+    function sendAI() {
+      const input = document.getElementById('ai-input');
+      const text = input.value.trim();
+      if (!text) return;
+      const messages = document.getElementById('ai-messages');
+      const userMsg = document.createElement('div');
+      userMsg.className = 'ai-msg user';
+      userMsg.textContent = text;
+      messages.appendChild(userMsg);
+      input.value = '';
+      setTimeout(() => {
+        const botMsg = document.createElement('div');
+        botMsg.className = 'ai-msg bot';
+        botMsg.textContent = "AI responding. Use the Private Browser to navigate to dedicated AI providers.";
+        messages.appendChild(botMsg);
+        messages.scrollTop = messages.scrollHeight;
+      }, 500);
+    }
+
+    function switchSection(name){
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.section === name));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      const el = document.getElementById('sec-' + name);
+      if(el) el.classList.add('active');
+    }
+    function showToast(msg){
+      let t = document.getElementById('vibe-toast');
+      if(!t){
+        t = document.createElement('div');
+        t.id = 'vibe-toast';
+        t.className = 'toast';
+        document.body.appendChild(t);
+      }
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(window.__toast);
+      window.__toast = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+    function randomGame(){
+      if(!games.length) return;
+      const g = games[Math.floor(Math.random() * games.length)];
+      openModal(g.title, g.url);
+    }
+    function updateVibe(){
+      const e = document.getElementById('vibe-clock');
+      if(e) e.textContent = new Date().toLocaleTimeString([], {hour12: false});
+      const a = document.getElementById('vibe-game-count');
+      if(a) a.textContent = games.length;
+      const b = document.getElementById('vibe-music-count');
+      if(b) b.textContent = musicData.length;
+      const c = document.getElementById('vibe-movie-count');
+      if(c) c.textContent = movies.length;
+    }
+    setInterval(updateVibe, 1000);
+    updateVibe();
+  </script>
+</body>
+</html>
